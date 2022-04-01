@@ -1,0 +1,4 @@
+## Append samples you want in your CSV to this file as resources ##
+resources:
+- weather_v1beta1_weather.yaml
+#+kubebuilder:scaffold:manifestskustomizesamples
