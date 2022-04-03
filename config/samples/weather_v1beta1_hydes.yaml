@@ -5,4 +5,7 @@ metadata:
 spec:
   lon: "-76.4517289841340"
   lat: "39.4668566282111"
-  api_key: "74c07887b1338cfa69b9964f8d8b5030"
+  secretRef:
+    name: weather-api-secret
+    key: token
+  #api_key: "74c07887b1338cfa69b9964f8d8b5030"

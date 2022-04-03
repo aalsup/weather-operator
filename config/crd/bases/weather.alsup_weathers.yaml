@@ -35,16 +35,24 @@ spec:
           spec:
             description: WeatherSpec defines the desired state of Weather
             properties:
-              api_key:
-                type: string
               lat:
                 type: string
               lon:
                 type: string
+              secretRef:
+                properties:
+                  key:
+                    type: string
+                  name:
+                    type: string
+                required:
+                - key
+                - name
+                type: object
             required:
-            - api_key
             - lat
             - lon
+            - secretRef
             type: object
           status:
             description: WeatherStatus defines the observed state of Weather

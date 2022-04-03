@@ -23,11 +23,16 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+type SecretRefSpec struct {
+	Name string `json:"name"`
+	Key  string `json:"key"`
+}
+
 // WeatherSpec defines the desired state of Weather
 type WeatherSpec struct {
-	Lon    string `json:"lon"`
-	Lat    string `json:"lat"`
-	ApiKey string `json:"api_key"`
+	Lon       string        `json:"lon"`
+	Lat       string        `json:"lat"`
+	SecretRef SecretRefSpec `json:"secretRef"`
 }
 
 // WeatherStatus defines the observed state of Weather

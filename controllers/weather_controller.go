@@ -20,10 +20,12 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/json"
 	"net/http"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -41,6 +43,7 @@ type WeatherReconciler struct {
 //+kubebuilder:rbac:groups=weather.alsup,resources=weathers,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=weather.alsup,resources=weathers/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=weather.alsup,resources=weathers/finalizers,verbs=update
+//+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;update;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -55,17 +58,39 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	logger := log.FromContext(ctx)
 	logger.Info("Reconciling weather")
 
+	// get the weather spec
 	weather := &weatherv1beta1.Weather{}
 	err := r.Get(ctx, req.NamespacedName, weather)
 	if err != nil {
+		if errors.IsNotFound(err) {
+			// instance was likely deleted, between Reconcile and here
+			logger.Info("weather instance not found. probably deleted")
+			return ctrl.Result{}, nil
+		}
 		logger.Error(err, "failed to get weather instance")
+		return ctrl.Result{}, err
+	}
+	logger.Info(fmt.Sprintf("got weather spec for lat: %s, lon: %s", weather.Spec.Lat, weather.Spec.Lon))
+
+	// get the referenced secret spec
+	secret := &corev1.Secret{}
+	secretKey := client.ObjectKey{Namespace: weather.Namespace, Name: weather.Spec.SecretRef.Name}
+	err = r.Get(ctx, secretKey, secret)
+	if err != nil {
+		logger.Error(err, "failed to get secret")
 		return ctrl.Result{}, err
 	}
 
 	const WeatherUrl = "https://api.openweathermap.org/data/2.5/weather"
 	const UnitFormat = "imperial"
-	url := fmt.Sprintf("%s?lat=%s&lon=%s&units=%s&appid=%s", WeatherUrl, weather.Spec.Lat, weather.Spec.Lon, UnitFormat, weather.Spec.ApiKey)
-	//logger.Info(fmt.Sprintf("URL: %s", url))
+	secretBytes, ok := secret.Data["token"]
+	if !ok {
+		logger.Error(nil, fmt.Sprintf("Secret '%s' does not have a 'token' attribute", secretKey))
+		return ctrl.Result{}, err
+	}
+
+	apiToken := string(secretBytes)
+	url := fmt.Sprintf("%s?lat=%s&lon=%s&units=%s&appid=%s", WeatherUrl, weather.Spec.Lat, weather.Spec.Lon, UnitFormat, apiToken) //logger.Info(fmt.Sprintf("URL: %s", url))
 	resp, err := http.Get(url)
 	if err != nil {
 		logger.Error(err, "failed to get weather info")
