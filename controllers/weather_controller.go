@@ -40,6 +40,50 @@ type WeatherReconciler struct {
 	Scheme *runtime.Scheme
 }
 
+type OpenWeatherMapResponse struct {
+	Coord struct {
+		Lon float64 `json:"lon"`
+		Lat float64 `json:"lat"`
+	} `json:"coord"`
+	Weather []struct {
+		Id          int    `json:"id"`
+		Main        string `json:"main"`
+		Description string `json:"description"`
+		Icon        string `json:"icon"`
+	} `json:"weather"`
+	Base string `json:"base"`
+	Main struct {
+		Temp      float64 `json:"temp"`
+		FeelsLike float64 `json:"feels_like"`
+		TempMin   float64 `json:"temp_min"`
+		TempMax   float64 `json:"temp_max"`
+		Pressure  int64   `json:"pressure"`
+		Humidity  int64   `json:"humidity"`
+	} `json:"main"`
+	Visibility uint32 `json:"visibility"`
+	Wind       struct {
+		Speed float64 `json:"speed"`
+		Deg   uint16  `json:"deg"`
+		Gust  float64 `json:"gust"`
+	} `json:"wind"`
+	Clouds struct {
+		All uint16 `json:"all"`
+	} `json:"clouds"`
+	DateTime int64 `json:"dt"`
+	Sys      struct {
+		Type    uint16  `json:"type"`
+		Id      uint32  `json:"id"`
+		Message float64 `json:"message"`
+		Country string  `json:"country"`
+		Sumrise uint64  `json:"sunrise"`
+		Sunset  uint64  `json:"sunset"`
+	} `json:"sys"`
+	Timezone int    `json:"timezone"`
+	Id       uint32 `json:"id"`
+	Name     string `json:"name"`
+	Cod      uint16 `json:"cod"`
+}
+
 //+kubebuilder:rbac:groups=weather.alsup,resources=weathers,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=weather.alsup,resources=weathers/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=weather.alsup,resources=weathers/finalizers,verbs=update
@@ -103,63 +147,35 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		logger.Error(err, "failed to read JSON weather response")
 		return ctrl.Result{}, err
 	}
-	//logger.Info(fmt.Sprintf("Got weather response: %s", data))
-	var mapData map[string]interface{}
-	err = json.Unmarshal(data, &mapData)
+
+	var jResponse OpenWeatherMapResponse
+	err = json.Unmarshal(data, &jResponse)
 	if err != nil {
-		logger.Error(err, "failed to parse JSON weather response")
+		logger.Error(err, "unable to parse JSON response into OpenWeatherMapResponse")
 		return ctrl.Result{}, err
 	}
+
 	// extract top-level data
-	epochTime := mapData["dt"].(int64)
-	locName := mapData["name"].(string)
+	epochTime := jResponse.DateTime
+	locName := jResponse.Name
 	// extract 'main' data
-	mainData := mapData["main"].(map[string]interface{})
-	var temp float64 = 0
-	if _, ok := mainData["temp"]; ok {
-		temp = mainData["temp"].(float64)
-		weather.Status.Temp = fmt.Sprintf("%.2f", temp)
-	} else {
-		weather.Status.Temp = ""
-	}
-	var pressure int64 = 0
-	if _, ok := mainData["pressure"]; ok {
-		pressure = mainData["pressure"].(int64)
-		weather.Status.Pressure = pressure
-	} else {
-		weather.Status.Pressure = 0
-	}
-	var humidity int64 = 0
-	if _, ok := mainData["humidity"]; ok {
-		humidity = mainData["humidity"].(int64)
-		weather.Status.Humidity = humidity
-	} else {
-		weather.Status.Humidity = 0
-	}
+	temp := jResponse.Main.Temp
+	weather.Status.Temp = fmt.Sprintf("%.2f", temp)
+	weather.Status.Pressure = jResponse.Main.Pressure
+	weather.Status.Humidity = jResponse.Main.Humidity
 	// extract 'wind' data
-	windData := mapData["wind"].(map[string]interface{})
-	var windSpeed float64 = 0
-	if _, ok := windData["speed"]; ok {
-		windSpeed = windData["speed"].(float64)
-		weather.Status.WindSpeed = fmt.Sprintf("%.2f", windSpeed)
-	} else {
-		weather.Status.WindSpeed = ""
-	}
-	var windGust float64 = 0
-	if _, ok := windData["gust"]; ok {
-		windGust = windData["gust"].(float64)
-		weather.Status.WindGust = fmt.Sprintf("%.2f", windGust)
-	} else {
-		weather.Status.WindGust = ""
-	}
+	windSpeed := jResponse.Wind.Speed
+	weather.Status.WindSpeed = fmt.Sprintf("%.2f", windSpeed)
+	windGust := jResponse.Wind.Gust
+	weather.Status.WindGust = fmt.Sprintf("%.2f", windGust)
 	// extract 'sys' data
-	sysData := mapData["sys"].(map[string]interface{})
-	country := sysData["country"].(string)
+	country := jResponse.Sys.Country
 	// update the weather status
 	t := time.Unix(epochTime, 0)
 	weather.Status.RefreshTime = t.String()
 	weather.Status.CountryCode = country
 	weather.Status.LocationName = locName
+	logger.Info(fmt.Sprintf("got weather response for: %s, %s", weather.Status.LocationName, weather.Status.CountryCode))
 	err = r.Status().Update(ctx, weather)
 	if err != nil {
 		logger.Error(err, "failed to update weather status")
