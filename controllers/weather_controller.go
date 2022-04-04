@@ -125,6 +125,7 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
+	// build the OpenWeatherMap API URL
 	const WeatherUrl = "https://api.openweathermap.org/data/2.5/weather"
 	const UnitFormat = "imperial"
 	secretBytes, ok := secret.Data["token"]
@@ -132,7 +133,6 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		logger.Error(nil, fmt.Sprintf("Secret '%s' does not have a 'token' attribute", secretKey))
 		return ctrl.Result{}, err
 	}
-
 	apiToken := string(secretBytes)
 	url := fmt.Sprintf("%s?lat=%s&lon=%s&units=%s&appid=%s", WeatherUrl, weather.Spec.Lat, weather.Spec.Lon, UnitFormat, apiToken) //logger.Info(fmt.Sprintf("URL: %s", url))
 	resp, err := http.Get(url)
@@ -142,12 +142,14 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 	defer resp.Body.Close()
 
+	// read the OpenWeatherMap response data
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		logger.Error(err, "failed to read JSON weather response")
 		return ctrl.Result{}, err
 	}
 
+	// parse the OpenWeatherMap response
 	var jResponse OpenWeatherMapResponse
 	err = json.Unmarshal(data, &jResponse)
 	if err != nil {
@@ -176,11 +178,15 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	weather.Status.CountryCode = country
 	weather.Status.LocationName = locName
 	logger.Info(fmt.Sprintf("got weather response for: %s, %s", weather.Status.LocationName, weather.Status.CountryCode))
+
+	// update the kubernetes status
 	err = r.Status().Update(ctx, weather)
 	if err != nil {
 		logger.Error(err, "failed to update weather status")
 		return ctrl.Result{}, err
 	}
+
+	// schedule the next reconcile
 	nextRun, _ := time.ParseDuration("5m")
 	return ctrl.Result{RequeueAfter: nextRun}, nil
 }
