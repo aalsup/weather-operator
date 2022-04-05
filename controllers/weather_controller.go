@@ -150,26 +150,16 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	// extract top-level data
-	epochTime := jResponse.DateTime
-	locName := jResponse.Name
-	// extract 'main' data
-	temp := jResponse.Main.Temp
-	weather.Status.Temp = fmt.Sprintf("%.2f", temp)
+	// update the weather status
+	weather.Status.Temp = fmt.Sprintf("%.2f", jResponse.Main.Temp)
 	weather.Status.Pressure = jResponse.Main.Pressure
 	weather.Status.Humidity = jResponse.Main.Humidity
-	// extract 'wind' data
-	windSpeed := jResponse.Wind.Speed
-	weather.Status.WindSpeed = fmt.Sprintf("%.2f", windSpeed)
-	windGust := jResponse.Wind.Gust
-	weather.Status.WindGust = fmt.Sprintf("%.2f", windGust)
-	// extract 'sys' data
-	country := jResponse.Sys.Country
-	// update the weather status
-	t := time.Unix(epochTime, 0)
+	weather.Status.WindSpeed = fmt.Sprintf("%.2f", jResponse.Wind.Speed)
+	weather.Status.WindGust = fmt.Sprintf("%.2f", jResponse.Wind.Gust)
+	t := time.Unix(jResponse.DateTime, 0)
 	weather.Status.RefreshTime = t.String()
-	weather.Status.CountryCode = country
-	weather.Status.LocationName = locName
+	weather.Status.CountryCode = jResponse.Sys.Country
+	weather.Status.LocationName = jResponse.Name
 	logger.Info(fmt.Sprintf("got weather response for: %s, %s", weather.Status.LocationName, weather.Status.CountryCode))
 
 	// update the kubernetes status
@@ -185,7 +175,7 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		refreshPeriod = weather.Spec.RefreshPeriod
 	}
 	nextRun, _ := time.ParseDuration(refreshPeriod)
-	logger.Info("Reconcile finished", "currentTemp", temp, "nextRun", nextRun.String())
+	logger.Info("Reconcile finished", "currentTemp", jResponse.Main.Temp, "nextRun", nextRun.String())
 	return ctrl.Result{RequeueAfter: nextRun}, nil
 }
 
