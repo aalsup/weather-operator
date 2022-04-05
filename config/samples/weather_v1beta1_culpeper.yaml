@@ -1,11 +1,11 @@
 apiVersion: weather.alsup/v1beta1
 kind: Weather
 metadata:
-  name: weather-sample
+  name: weather-culpeper-va
 spec:
   lon: "-77.98832108933742"
   lat: "38.446507669062406"
   secretRef:
     name: weather-api-secret
     key: token
-  refreshPeriod: "10m"
+  refreshPeriod: "3m"

@@ -39,6 +39,8 @@ spec:
                 type: string
               lon:
                 type: string
+              refreshPeriod:
+                type: string
               secretRef:
                 properties:
                   key:
@@ -52,6 +54,7 @@ spec:
             required:
             - lat
             - lon
+            - refreshPeriod
             - secretRef
             type: object
           status:

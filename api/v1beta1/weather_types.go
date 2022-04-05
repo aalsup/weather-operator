@@ -30,9 +30,10 @@ type SecretRefSpec struct {
 
 // WeatherSpec defines the desired state of Weather
 type WeatherSpec struct {
-	Lon       string        `json:"lon"`
-	Lat       string        `json:"lat"`
-	SecretRef SecretRefSpec `json:"secretRef"`
+	Lon           string        `json:"lon"`
+	Lat           string        `json:"lat"`
+	SecretRef     SecretRefSpec `json:"secretRef"`
+	RefreshPeriod string        `json:"refreshPeriod"`
 }
 
 // WeatherStatus defines the observed state of Weather

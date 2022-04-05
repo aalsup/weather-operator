@@ -187,7 +187,12 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	// schedule the next reconcile
-	nextRun, _ := time.ParseDuration("5m")
+	refreshPeriod := "5m"
+	if len(weather.Spec.RefreshPeriod) > 0 {
+		refreshPeriod = weather.Spec.RefreshPeriod
+	}
+	nextRun, _ := time.ParseDuration(refreshPeriod)
+	logger.Info("Refresh scheduled", "nextRun", nextRun.String())
 	return ctrl.Result{RequeueAfter: nextRun}, nil
 }
 
