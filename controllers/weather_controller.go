@@ -192,7 +192,7 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		refreshPeriod = weather.Spec.RefreshPeriod
 	}
 	nextRun, _ := time.ParseDuration(refreshPeriod)
-	logger.Info("Refresh scheduled", "nextRun", nextRun.String())
+	logger.Info("Reconcile finished", "currentTemp", temp, "nextRun", nextRun.String())
 	return ctrl.Result{RequeueAfter: nextRun}, nil
 }
 
