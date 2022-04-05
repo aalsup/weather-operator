@@ -128,7 +128,8 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 	apiToken := string(secretBytes)
 	url := fmt.Sprintf("%s?lat=%s&lon=%s&units=%s&appid=%s", WeatherUrl, weather.Spec.Lat, weather.Spec.Lon, UnitFormat, apiToken) //logger.Info(fmt.Sprintf("URL: %s", url))
-	resp, err := http.Get(url)
+	httpClient := http.Client{Timeout: 10 * time.Second}
+	resp, err := httpClient.Get(url)
 	if err != nil {
 		logger.Error(err, "failed to get weather info")
 		return ctrl.Result{}, err
