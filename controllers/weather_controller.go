@@ -121,7 +121,7 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	secretKey := client.ObjectKey{Namespace: weather.Namespace, Name: weather.Spec.SecretRef.Name}
 	err = r.Get(ctx, secretKey, secret)
 	if err != nil {
-		logger.Error(err, "failed to get secret")
+		logger.Error(err, fmt.Sprintf("failed to get secret '%s'", weather.Spec.SecretRef.Name))
 		return ctrl.Result{}, err
 	}
 
