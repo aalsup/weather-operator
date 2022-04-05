@@ -50,6 +50,10 @@ type WeatherStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:printcolumn:name="Lat",type="string",JSONPath=".spec.lat",description="Latitude"
+//+kubebuilder:printcolumn:name="Lon",type="string",JSONPath=".spec.lon",description="Longitude"
+//+kubebuilder:printcolumn:name="Location",type="string",JSONPath=".status.location_name",description="Location"
+//+kubebuilder:printcolumn:name="Temp",type="string",JSONPath=".status.temp",description="Temp"
 
 // Weather is the Schema for the weathers API
 type Weather struct {

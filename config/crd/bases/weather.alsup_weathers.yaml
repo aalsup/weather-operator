@@ -15,7 +15,24 @@ spec:
     singular: weather
   scope: Namespaced
   versions:
-  - name: v1beta1
+  - additionalPrinterColumns:
+    - description: Latitude
+      jsonPath: .spec.lat
+      name: Lat
+      type: string
+    - description: Longitude
+      jsonPath: .spec.lon
+      name: Lon
+      type: string
+    - description: Location
+      jsonPath: .status.location_name
+      name: Location
+      type: string
+    - description: Temp
+      jsonPath: .status.temp
+      name: Temp
+      type: string
+    name: v1beta1
     schema:
       openAPIV3Schema:
         description: Weather is the Schema for the weathers API

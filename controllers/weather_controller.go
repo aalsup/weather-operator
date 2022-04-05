@@ -89,13 +89,6 @@ type OpenWeatherMapResponse struct {
 //+kubebuilder:rbac:groups=weather.alsup,resources=weathers/finalizers,verbs=update
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;update;patch
 
-// Reconcile is part of the main kubernetes reconciliation loop which aims to
-// move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the Weather object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
-//
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
 func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -116,7 +109,7 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 	logger.Info(fmt.Sprintf("got weather spec for lat: %s, lon: %s", weather.Spec.Lat, weather.Spec.Lon))
 
-	// get the referenced secret spec
+	// get the referenced secret spec (need to get the OpenWeatherAPI token)
 	secret := &corev1.Secret{}
 	secretKey := client.ObjectKey{Namespace: weather.Namespace, Name: weather.Spec.SecretRef.Name}
 	err = r.Get(ctx, secretKey, secret)
