@@ -1,7 +1,7 @@
 apiVersion: weather.alsup/v1beta1
 kind: Weather
 metadata:
-  name: weather-sample
+  name: sample
 spec:
   lon: "-77.98832108933742"
   lat: "38.446507669062406"
