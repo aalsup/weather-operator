@@ -4,7 +4,6 @@ This operator allows the user to create `weather` resources,
 providing `lat/lon` coordinates. The weather operator will query
 the OpenWeatherAPI and provide back the details into the `status`.
 
-
 ### Dependencies
 
 ```bash

@@ -34,6 +34,10 @@ import (
 	weatherv1beta1 "alsup/api/v1beta1"
 )
 
+const WeatherUrl = "https://api.openweathermap.org/data/2.5/weather"
+const UnitFormat = "imperial"
+const DefaultRefreshPeriod = "5m"
+
 // WeatherReconciler reconciles a Weather object
 type WeatherReconciler struct {
 	client.Client
@@ -119,8 +123,6 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	// build the OpenWeatherMap API URL
-	const WeatherUrl = "https://api.openweathermap.org/data/2.5/weather"
-	const UnitFormat = "imperial"
 	secretBytes, ok := secret.Data["token"]
 	if !ok {
 		logger.Error(nil, fmt.Sprintf("Secret '%s' does not have a 'token' attribute", secretKey))
@@ -157,8 +159,7 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	weather.Status.Humidity = jResponse.Main.Humidity
 	weather.Status.WindSpeed = fmt.Sprintf("%.2f", jResponse.Wind.Speed)
 	weather.Status.WindGust = fmt.Sprintf("%.2f", jResponse.Wind.Gust)
-	t := time.Unix(jResponse.DateTime, 0)
-	weather.Status.RefreshTime = t.String()
+	weather.Status.RefreshTime = time.Unix(jResponse.DateTime, 0).String()
 	weather.Status.CountryCode = jResponse.Sys.Country
 	weather.Status.LocationName = jResponse.Name
 	logger.Info(fmt.Sprintf("got weather response for: %s, %s", weather.Status.LocationName, weather.Status.CountryCode))
@@ -171,7 +172,7 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	// schedule the next reconcile
-	refreshPeriod := "5m"
+	refreshPeriod := DefaultRefreshPeriod
 	if len(weather.Spec.RefreshPeriod) > 0 {
 		refreshPeriod = weather.Spec.RefreshPeriod
 	}

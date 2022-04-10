@@ -24,28 +24,28 @@ import (
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 type SecretRefSpec struct {
-	Name string `json:"name" yaml:"name"`
-	Key  string `json:"key" yaml:"key"`
+	Name string `json:"name"`
+	Key  string `json:"key"`
 }
 
 // WeatherSpec defines the desired state of Weather
 type WeatherSpec struct {
-	Lon           string        `json:"lon" yaml:"lon"`
-	Lat           string        `json:"lat" yaml:"lat"`
-	SecretRef     SecretRefSpec `json:"secretRef" yaml:"secretRef"`
-	RefreshPeriod string        `json:"refreshPeriod" yaml:"refreshPeriod"`
+	Lon           string        `json:"lon"`
+	Lat           string        `json:"lat"`
+	SecretRef     SecretRefSpec `json:"secretRef"`
+	RefreshPeriod string        `json:"refreshPeriod"`
 }
 
 // WeatherStatus defines the observed state of Weather
 type WeatherStatus struct {
-	RefreshTime  string `json:"refresh_time" yaml:"refresh_time"`
-	CountryCode  string `json:"country_code" yaml:"country_code"`
-	LocationName string `json:"location_name" yaml:"location_name"`
-	Temp         string `json:"temp" yaml:"temp"`
-	Pressure     int64  `json:"pressure" yaml:"pressure"`
-	Humidity     int64  `json:"humidity" yaml:"humidity"`
-	WindSpeed    string `json:"wind_speed" yaml:"wind_speed"`
-	WindGust     string `json:"wind_gust" yaml:"wind_gust"`
+	RefreshTime  string `json:"refresh_time"`
+	CountryCode  string `json:"country_code"`
+	LocationName string `json:"location_name"`
+	Temp         string `json:"temp"`
+	Pressure     int64  `json:"pressure"`
+	Humidity     int64  `json:"humidity"`
+	WindSpeed    string `json:"wind_speed"`
+	WindGust     string `json:"wind_gust"`
 }
 
 //+kubebuilder:object:root=true
