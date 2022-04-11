@@ -36,6 +36,7 @@ import (
 
 const WeatherUrl = "https://api.openweathermap.org/data/2.5/weather"
 const UnitFormat = "imperial"
+const WeatherAPITimeout = 10 * time.Second
 const DefaultRefreshPeriod = "5m"
 
 // WeatherReconciler reconciles a Weather object
@@ -130,7 +131,7 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 	apiToken := string(secretBytes)
 	url := fmt.Sprintf("%s?lat=%s&lon=%s&units=%s&appid=%s", WeatherUrl, weather.Spec.Lat, weather.Spec.Lon, UnitFormat, apiToken) //logger.Info(fmt.Sprintf("URL: %s", url))
-	httpClient := http.Client{Timeout: 10 * time.Second}
+	httpClient := http.Client{Timeout: WeatherAPITimeout}
 	resp, err := httpClient.Get(url)
 	if err != nil {
 		logger.Error(err, "failed to get weather info")
