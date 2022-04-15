@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	goerrs "errors"
 	"fmt"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -121,14 +122,18 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	secretKey := client.ObjectKey{Namespace: weather.Namespace, Name: weather.Spec.SecretRef.Name}
 	err = r.Client.Get(ctx, secretKey, secret)
 	if err != nil {
-		logger.Error(err, fmt.Sprintf("failed to get secret '%s'", weather.Spec.SecretRef.Name))
+		errMsg := fmt.Sprintf("Cannot find secret '%s'", weather.Spec.SecretRef.Name)
+		logger.Error(err, errMsg)
+		r.Recorder.Event(weather, corev1.EventTypeWarning, "Secret", errMsg)
 		return ctrl.Result{}, err
 	}
 
 	// build the OpenWeatherMap API URL
 	secretBytes, ok := secret.Data["token"]
 	if !ok {
-		logger.Error(nil, fmt.Sprintf("Secret '%s' does not have a 'token' attribute", secretKey))
+		errMsg := fmt.Sprintf("Secret '%s' does not have a 'token' attribute", secretKey)
+		logger.Error(nil, errMsg)
+		r.Recorder.Event(weather, corev1.EventTypeWarning, "Secret", errMsg)
 		return ctrl.Result{}, err
 	}
 	apiToken := string(secretBytes)
@@ -136,7 +141,16 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	httpClient := http.Client{Timeout: WeatherAPITimeout}
 	resp, err := httpClient.Get(url)
 	if err != nil {
-		logger.Error(err, "failed to get weather info")
+		errMsg := "Unable to query weather API"
+		logger.Error(err, errMsg)
+		r.Recorder.Event(weather, corev1.EventTypeWarning, "WeatherAPI", errMsg)
+		return ctrl.Result{}, err
+	}
+	if resp.StatusCode != 200 {
+		errMsg := fmt.Sprintf("WeatherAPI returned status-code: %d", resp.StatusCode)
+		err = goerrs.New(errMsg)
+		logger.Error(err, errMsg)
+		r.Recorder.Event(weather, corev1.EventTypeWarning, "WeatherAPI", errMsg)
 		return ctrl.Result{}, err
 	}
 	defer resp.Body.Close()
@@ -144,7 +158,9 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// read the OpenWeatherMap response data
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		logger.Error(err, "failed to read JSON weather response")
+		errMsg := "Unable to read JSON weather response"
+		logger.Error(err, errMsg)
+		r.Recorder.Event(weather, corev1.EventTypeWarning, "WeatherAPI", errMsg)
 		return ctrl.Result{}, err
 	}
 
@@ -152,7 +168,9 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	var jResponse OpenWeatherMapResponse
 	err = json.Unmarshal(data, &jResponse)
 	if err != nil {
-		logger.Error(err, "unable to parse JSON response into OpenWeatherMapResponse")
+		errMsg := "Unable to parse JSON response into OpenWeatherMapResponse"
+		logger.Error(err, errMsg)
+		r.Recorder.Event(weather, corev1.EventTypeWarning, "WeatherAPI", errMsg)
 		return ctrl.Result{}, err
 	}
 
@@ -187,7 +205,7 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// update the kubernetes status
 	err = r.Client.Status().Update(ctx, weather)
 	if err != nil {
-		logger.Error(err, "failed to update weather status")
+		logger.Error(err, "Unable to post update to weather")
 		return ctrl.Result{}, err
 	}
 	if dataChanged {
