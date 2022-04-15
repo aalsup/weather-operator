@@ -32,6 +32,10 @@ spec:
       jsonPath: .status.temp
       name: Temp
       type: string
+    - description: Refreshed
+      jsonPath: .status.refresh_time
+      name: Refreshed
+      type: string
     name: v1beta1
     schema:
       openAPIV3Schema:

@@ -22,6 +22,8 @@ import (
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/json"
+	"k8s.io/client-go/tools/record"
+	"k8s.io/klog/v2"
 	"net/http"
 	"time"
 
@@ -42,7 +44,8 @@ const DefaultRefreshPeriod = "5m"
 // WeatherReconciler reconciles a Weather object
 type WeatherReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme   *runtime.Scheme
+	Recorder record.EventRecorder
 }
 
 type OpenWeatherMapResponse struct {
@@ -155,7 +158,9 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	// update the weather status
-	weather.Status.Temp = fmt.Sprintf("%.2f", jResponse.Main.Temp)
+	newTemp := fmt.Sprintf("%.2f", jResponse.Main.Temp)
+	//tempChanged := (newTemp != weather.Status.Temp)
+	weather.Status.Temp = newTemp
 	weather.Status.Pressure = jResponse.Main.Pressure
 	weather.Status.Humidity = jResponse.Main.Humidity
 	weather.Status.WindSpeed = fmt.Sprintf("%.2f", jResponse.Wind.Speed)
@@ -165,12 +170,19 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	weather.Status.LocationName = jResponse.Name
 	logger.Info(fmt.Sprintf("got weather response for: %s, %s", weather.Status.LocationName, weather.Status.CountryCode))
 
+	//if tempChanged {
+	//ref, _ := reference.GetReference(r.Scheme, weather)
+	//logger.Info(ref.String())
+	//}
+
 	// update the kubernetes status
 	err = r.Status().Update(ctx, weather)
 	if err != nil {
 		logger.Error(err, "failed to update weather status")
 		return ctrl.Result{}, err
 	}
+
+	r.Recorder.Event(weather, corev1.EventTypeNormal, "Updated", fmt.Sprintf("Temp changed to %s", newTemp))
 
 	// schedule the next reconcile
 	refreshPeriod := DefaultRefreshPeriod
@@ -184,6 +196,10 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *WeatherReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	eventBroadcaster := record.NewBroadcaster()
+	eventBroadcaster.StartLogging(klog.Infof)
+	r.Recorder = mgr.GetEventRecorderFor("weather")
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&weatherv1beta1.Weather{}).
 		Complete(r)
