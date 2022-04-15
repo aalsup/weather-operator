@@ -176,10 +176,10 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	// update the weather status
 	var dataChanged []string
-	newTemp := fmt.Sprintf("%.2f", jResponse.Main.Temp)
-	if weather.Status.Temp != newTemp {
+	sTemp := fmt.Sprintf("%.2f", jResponse.Main.Temp)
+	if weather.Status.Temp != sTemp {
 		dataChanged = append(dataChanged, "Temp")
-		weather.Status.Temp = newTemp
+		weather.Status.Temp = sTemp
 	}
 	if weather.Status.Pressure != jResponse.Main.Pressure {
 		dataChanged = append(dataChanged, "Pressure")
@@ -189,13 +189,15 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		dataChanged = append(dataChanged, "Humidity")
 		weather.Status.Humidity = jResponse.Main.Humidity
 	}
-	if weather.Status.WindSpeed != fmt.Sprintf("%.2f", jResponse.Wind.Speed) {
+	sWindSpeed := fmt.Sprintf("%.2f", jResponse.Wind.Speed)
+	if weather.Status.WindSpeed != sWindSpeed {
 		dataChanged = append(dataChanged, "WindSpeed")
-		weather.Status.WindSpeed = fmt.Sprintf("%.2f", jResponse.Wind.Speed)
+		weather.Status.WindSpeed = sWindSpeed
 	}
-	if weather.Status.WindGust != fmt.Sprintf("%.2f", jResponse.Wind.Gust) {
+	sWindGust := fmt.Sprintf("%.2f", jResponse.Wind.Gust)
+	if weather.Status.WindGust != sWindGust {
 		dataChanged = append(dataChanged, "WindGust")
-		weather.Status.WindGust = fmt.Sprintf("%.2f", jResponse.Wind.Gust)
+		weather.Status.WindGust = sWindGust
 	}
 	weather.Status.RefreshTime = time.Unix(jResponse.DateTime, 0).String()
 	weather.Status.CountryCode = jResponse.Sys.Country
@@ -211,7 +213,7 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	// record an event if data has changed
 	if len(dataChanged) > 0 {
-		msg := fmt.Sprintf("Weather changed; %s", dataChanged)
+		msg := fmt.Sprintf("Weather changed. %s", dataChanged)
 		r.Recorder.Event(weather, corev1.EventTypeNormal, "Updated", msg)
 	}
 
