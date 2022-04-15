@@ -124,7 +124,7 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if err != nil {
 		errMsg := fmt.Sprintf("Cannot find secret '%s'", weather.Spec.SecretRef.Name)
 		logger.Error(err, errMsg)
-		r.Recorder.Event(weather, corev1.EventTypeWarning, "Secret", errMsg)
+		r.Recorder.Event(weather, "Failure", "Secret", errMsg)
 		return ctrl.Result{}, err
 	}
 
@@ -133,7 +133,7 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if !ok {
 		errMsg := fmt.Sprintf("Secret '%s' does not have a 'token' attribute", secretKey)
 		logger.Error(nil, errMsg)
-		r.Recorder.Event(weather, corev1.EventTypeWarning, "Secret", errMsg)
+		r.Recorder.Event(weather, "Failure", "Secret", errMsg)
 		return ctrl.Result{}, err
 	}
 	apiToken := string(secretBytes)
@@ -143,14 +143,14 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if err != nil {
 		errMsg := "Unable to query weather API"
 		logger.Error(err, errMsg)
-		r.Recorder.Event(weather, corev1.EventTypeWarning, "WeatherAPI", errMsg)
+		r.Recorder.Event(weather, "Failure", "WeatherAPI", errMsg)
 		return ctrl.Result{}, err
 	}
 	if resp.StatusCode != 200 {
 		errMsg := fmt.Sprintf("WeatherAPI returned status-code: %d", resp.StatusCode)
 		err = goerrs.New(errMsg)
 		logger.Error(err, errMsg)
-		r.Recorder.Event(weather, corev1.EventTypeWarning, "WeatherAPI", errMsg)
+		r.Recorder.Event(weather, "Failure", "WeatherAPI", errMsg)
 		return ctrl.Result{}, err
 	}
 	defer resp.Body.Close()
@@ -160,7 +160,7 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if err != nil {
 		errMsg := "Unable to read JSON weather response"
 		logger.Error(err, errMsg)
-		r.Recorder.Event(weather, corev1.EventTypeWarning, "WeatherAPI", errMsg)
+		r.Recorder.Event(weather, "Failure", "WeatherAPI", errMsg)
 		return ctrl.Result{}, err
 	}
 
@@ -170,31 +170,31 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if err != nil {
 		errMsg := "Unable to parse JSON response into OpenWeatherMapResponse"
 		logger.Error(err, errMsg)
-		r.Recorder.Event(weather, corev1.EventTypeWarning, "WeatherAPI", errMsg)
+		r.Recorder.Event(weather, "Failure", "WeatherAPI", errMsg)
 		return ctrl.Result{}, err
 	}
 
 	// update the weather status
-	var dataChanged bool
+	var dataChanged []string
 	newTemp := fmt.Sprintf("%.2f", jResponse.Main.Temp)
 	if weather.Status.Temp != newTemp {
-		dataChanged = true
+		dataChanged = append(dataChanged, "Temp")
 		weather.Status.Temp = newTemp
 	}
 	if weather.Status.Pressure != jResponse.Main.Pressure {
-		dataChanged = true
+		dataChanged = append(dataChanged, "Pressure")
 		weather.Status.Pressure = jResponse.Main.Pressure
 	}
 	if weather.Status.Humidity != jResponse.Main.Humidity {
-		dataChanged = true
+		dataChanged = append(dataChanged, "Humidity")
 		weather.Status.Humidity = jResponse.Main.Humidity
 	}
 	if weather.Status.WindSpeed != fmt.Sprintf("%.2f", jResponse.Wind.Speed) {
-		dataChanged = true
+		dataChanged = append(dataChanged, "WindSpeed")
 		weather.Status.WindSpeed = fmt.Sprintf("%.2f", jResponse.Wind.Speed)
 	}
 	if weather.Status.WindGust != fmt.Sprintf("%.2f", jResponse.Wind.Gust) {
-		dataChanged = true
+		dataChanged = append(dataChanged, "WindGust")
 		weather.Status.WindGust = fmt.Sprintf("%.2f", jResponse.Wind.Gust)
 	}
 	weather.Status.RefreshTime = time.Unix(jResponse.DateTime, 0).String()
@@ -208,9 +208,11 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		logger.Error(err, "Unable to post update to weather")
 		return ctrl.Result{}, err
 	}
-	if dataChanged {
-		// Post an event
-		r.Recorder.Event(weather, corev1.EventTypeNormal, "Updated", "Weather data changed")
+
+	// record an event if data has changed
+	if len(dataChanged) > 0 {
+		msg := fmt.Sprintf("Weather changed; %s", dataChanged)
+		r.Recorder.Event(weather, corev1.EventTypeNormal, "Updated", msg)
 	}
 
 	// schedule the next reconcile
