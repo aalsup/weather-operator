@@ -23,7 +23,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/klog/v2"
 	"net/http"
 	"time"
 
@@ -158,22 +157,32 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	// update the weather status
+	var dataChanged bool
 	newTemp := fmt.Sprintf("%.2f", jResponse.Main.Temp)
-	//tempChanged := (newTemp != weather.Status.Temp)
-	weather.Status.Temp = newTemp
-	weather.Status.Pressure = jResponse.Main.Pressure
-	weather.Status.Humidity = jResponse.Main.Humidity
-	weather.Status.WindSpeed = fmt.Sprintf("%.2f", jResponse.Wind.Speed)
-	weather.Status.WindGust = fmt.Sprintf("%.2f", jResponse.Wind.Gust)
+	if weather.Status.Temp != newTemp {
+		dataChanged = true
+		weather.Status.Temp = newTemp
+	}
+	if weather.Status.Pressure != jResponse.Main.Pressure {
+		dataChanged = true
+		weather.Status.Pressure = jResponse.Main.Pressure
+	}
+	if weather.Status.Humidity != jResponse.Main.Humidity {
+		dataChanged = true
+		weather.Status.Humidity = jResponse.Main.Humidity
+	}
+	if weather.Status.WindSpeed != fmt.Sprintf("%.2f", jResponse.Wind.Speed) {
+		dataChanged = true
+		weather.Status.WindSpeed = fmt.Sprintf("%.2f", jResponse.Wind.Speed)
+	}
+	if weather.Status.WindGust != fmt.Sprintf("%.2f", jResponse.Wind.Gust) {
+		dataChanged = true
+		weather.Status.WindGust = fmt.Sprintf("%.2f", jResponse.Wind.Gust)
+	}
 	weather.Status.RefreshTime = time.Unix(jResponse.DateTime, 0).String()
 	weather.Status.CountryCode = jResponse.Sys.Country
 	weather.Status.LocationName = jResponse.Name
 	logger.Info(fmt.Sprintf("got weather response for: %s, %s", weather.Status.LocationName, weather.Status.CountryCode))
-
-	//if tempChanged {
-	//ref, _ := reference.GetReference(r.Scheme, weather)
-	//logger.Info(ref.String())
-	//}
 
 	// update the kubernetes status
 	err = r.Status().Update(ctx, weather)
@@ -181,8 +190,10 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		logger.Error(err, "failed to update weather status")
 		return ctrl.Result{}, err
 	}
-
-	r.Recorder.Event(weather, corev1.EventTypeNormal, "Updated", fmt.Sprintf("Temp changed to %s", newTemp))
+	if dataChanged {
+		// Post an event
+		r.Recorder.Event(weather, corev1.EventTypeNormal, "Updated", "Weather data changed")
+	}
 
 	// schedule the next reconcile
 	refreshPeriod := DefaultRefreshPeriod
@@ -196,8 +207,6 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *WeatherReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartLogging(klog.Infof)
 	r.Recorder = mgr.GetEventRecorderFor("weather")
 
 	return ctrl.NewControllerManagedBy(mgr).
