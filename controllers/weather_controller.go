@@ -42,7 +42,7 @@ const DefaultRefreshPeriod = "5m"
 
 // WeatherReconciler reconciles a Weather object
 type WeatherReconciler struct {
-	client.Client
+	Client   client.Client
 	Scheme   *runtime.Scheme
 	Recorder record.EventRecorder
 }
@@ -201,7 +201,7 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		refreshPeriod = weather.Spec.RefreshPeriod
 	}
 	nextRun, _ := time.ParseDuration(refreshPeriod)
-	logger.Info("Reconcile finished", "currentTemp", jResponse.Main.Temp, "nextRun", nextRun.String())
+	logger.Info("Reconcile done", "Temp", jResponse.Main.Temp, "NextRun", nextRun.String())
 	return ctrl.Result{RequeueAfter: nextRun}, nil
 }
 
