@@ -104,7 +104,7 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	// get the weather spec
 	weather := &weatherv1beta1.Weather{}
-	err := r.Get(ctx, req.NamespacedName, weather)
+	err := r.Client.Get(ctx, req.NamespacedName, weather)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// instance was likely deleted, between Reconcile and here
@@ -119,7 +119,7 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// get the referenced secret spec (need to get the OpenWeatherAPI token)
 	secret := &corev1.Secret{}
 	secretKey := client.ObjectKey{Namespace: weather.Namespace, Name: weather.Spec.SecretRef.Name}
-	err = r.Get(ctx, secretKey, secret)
+	err = r.Client.Get(ctx, secretKey, secret)
 	if err != nil {
 		logger.Error(err, fmt.Sprintf("failed to get secret '%s'", weather.Spec.SecretRef.Name))
 		return ctrl.Result{}, err
@@ -185,7 +185,7 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	logger.Info(fmt.Sprintf("got weather response for: %s, %s", weather.Status.LocationName, weather.Status.CountryCode))
 
 	// update the kubernetes status
-	err = r.Status().Update(ctx, weather)
+	err = r.Client.Status().Update(ctx, weather)
 	if err != nil {
 		logger.Error(err, "failed to update weather status")
 		return ctrl.Result{}, err
