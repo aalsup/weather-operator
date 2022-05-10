@@ -6,11 +6,23 @@ the OpenWeatherAPI and provide back the details into the `status`.
 
 ### Dependencies
 
+- MacOS - install HomeBrew
+- Ubuntu - install HomeBrew (https://brew.sh/)
+
 ```bash
 brew install operator-sdk
+brew install kubernetes-cli
+brew install go@1.17
+brew install kind
 ```
 
 ### Build and run
+
+Ubuntu notes
+
+```bash
+export CGO_ENABLED=0 
+```
 
 ```bash
 make generate
