@@ -1,0 +1,11 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="go run weather-operator" type="GoApplicationRunConfiguration" factoryName="Go Application">
+    <module name="weather-operator" />
+    <working_directory value="$PROJECT_DIR$" />
+    <kind value="DIRECTORY" />
+    <package value="alsup" />
+    <directory value="$PROJECT_DIR$" />
+    <filePath value="$PROJECT_DIR$/../weather-operator|$PROJECT_DIR$/main.go" />
+    <method v="2" />
+  </configuration>
+</component>
