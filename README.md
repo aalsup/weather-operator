@@ -34,7 +34,7 @@ make run
 The kubernetes weather operator should now be running locally, 
 attached to your k8s cluster.
 
-### Deploy a weather instance
+### Deploy a weather object (instance)
 
 - Go to https://openweathermap.org and create a free account.
   - Within your account, generate an API token.

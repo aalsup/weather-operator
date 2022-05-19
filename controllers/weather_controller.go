@@ -25,6 +25,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/client-go/tools/record"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -178,25 +180,64 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	var dataChanged []string
 	sTemp := fmt.Sprintf("%.2f", jResponse.Main.Temp)
 	if weather.Status.Temp != sTemp {
-		dataChanged = append(dataChanged, "Temp")
+		attrib := "Temp"
+		prevTemp, err := strconv.ParseFloat(weather.Status.Temp, 64)
+		if err == nil {
+			if prevTemp < jResponse.Main.Temp {
+				attrib += "+"
+			} else {
+				attrib += "-"
+			}
+		}
+		dataChanged = append(dataChanged, attrib)
 		weather.Status.Temp = sTemp
 	}
 	if weather.Status.Pressure != jResponse.Main.Pressure {
-		dataChanged = append(dataChanged, "Pressure")
+		attrib := "Pressure"
+		if weather.Status.Pressure < jResponse.Main.Pressure {
+			attrib += "+"
+		} else {
+			attrib += "-"
+		}
+		dataChanged = append(dataChanged, attrib)
 		weather.Status.Pressure = jResponse.Main.Pressure
 	}
 	if weather.Status.Humidity != jResponse.Main.Humidity {
-		dataChanged = append(dataChanged, "Humidity")
+		attrib := "Humidity"
+		if weather.Status.Humidity < jResponse.Main.Humidity {
+			attrib += "+"
+		} else {
+			attrib += "-"
+		}
+		dataChanged = append(dataChanged, attrib)
 		weather.Status.Humidity = jResponse.Main.Humidity
 	}
 	sWindSpeed := fmt.Sprintf("%.2f", jResponse.Wind.Speed)
 	if weather.Status.WindSpeed != sWindSpeed {
-		dataChanged = append(dataChanged, "WindSpeed")
+		attrib := "WindSpeed"
+		prevVal, err := strconv.ParseFloat(weather.Status.WindSpeed, 64)
+		if err == nil {
+			if prevVal < jResponse.Wind.Speed {
+				attrib += "+"
+			} else {
+				attrib += "-"
+			}
+		}
+		dataChanged = append(dataChanged, attrib)
 		weather.Status.WindSpeed = sWindSpeed
 	}
 	sWindGust := fmt.Sprintf("%.2f", jResponse.Wind.Gust)
 	if weather.Status.WindGust != sWindGust {
-		dataChanged = append(dataChanged, "WindGust")
+		attrib := "WindGust"
+		prevVal, err := strconv.ParseFloat(weather.Status.WindGust, 64)
+		if err == nil {
+			if prevVal < jResponse.Wind.Gust {
+				attrib += "+"
+			} else {
+				attrib += "-"
+			}
+		}
+		dataChanged = append(dataChanged, attrib)
 		weather.Status.WindGust = sWindGust
 	}
 	weather.Status.RefreshTime = time.Unix(jResponse.DateTime, 0).String()
@@ -213,7 +254,7 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	// record an event if data has changed
 	if len(dataChanged) > 0 {
-		msg := fmt.Sprintf("Weather changed. %s", dataChanged)
+		msg := fmt.Sprintf("Weather changed. [%s]", strings.Join(dataChanged, ", "))
 		r.Recorder.Event(weather, corev1.EventTypeNormal, "Updated", msg)
 	}
 
