@@ -20,7 +20,7 @@ import (
 	"context"
 	goerrs "errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/client-go/tools/record"
@@ -99,7 +99,7 @@ type OpenWeatherMapResponse struct {
 //+kubebuilder:rbac:groups=weather.alsup,resources=weathers/finalizers,verbs=update
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;update;patch
 
-// For more details, check Reconcile and its Result here:
+// Reconcile For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
 func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
@@ -155,10 +155,11 @@ func (r *WeatherReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		r.Recorder.Event(weather, "Failure", "WeatherAPI", errMsg)
 		return ctrl.Result{}, err
 	}
+	//goland:noinspection GoUnhandledErrorResult
 	defer resp.Body.Close()
 
 	// read the OpenWeatherMap response data
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		errMsg := "Unable to read JSON weather response"
 		logger.Error(err, errMsg)
