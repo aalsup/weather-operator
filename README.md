@@ -24,6 +24,14 @@ Ubuntu notes
 export CGO_ENABLED=0 
 ```
 
+MacOS and Ubuntu
+
+Be sure go v1.17 is used for the build
+
+```bash
+export PATH=/usr/local/opt/go@1.17/bin:$PATH
+```
+
 ```bash
 make generate
 make manifests
