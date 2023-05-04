@@ -47,7 +47,7 @@ attached to your k8s cluster.
 - Go to https://openweathermap.org and create a free account.
   - Within your account, generate an API token.
 - Convert the token into a Base64-encoded string
-  - `kubectl create secret weather-api-secret --from-literal=token=<YOUR-SECRET-TOKEN>`
+  - `kubectl create secret generic weather-api-secret --from-literal=token=<YOUR-SECRET-TOKEN>`
 - Edit the file `./config/samples/weather_v1beta1_weather.yaml`
   - Change the `lat` and `lon` attributes to whatever you desire
 - Upload your new weather instance
